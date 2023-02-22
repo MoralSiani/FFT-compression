@@ -4,10 +4,17 @@ from scipy.io import wavfile as wf
 import matplotlib.pyplot as plt
 import numpy as np
 from numpy import fft as npfft
+from pathlib import Path
+
+def fft(sample, inverse=False):
+    results = _fft_recursive(sample, 1 if inverse else -1)
+    if inverse:
+        results = results / len(sample)
+    return results
 
 
 def _fft_recursive(sample, inverse_coefficient):
-    """takes sample list, returns frequency bins"""
+    """takes time domain wave, returns frequency domain"""
     # breaking condition
     sample_size = len(sample)
     if sample_size == 1:
@@ -15,7 +22,10 @@ def _fft_recursive(sample, inverse_coefficient):
 
     # assert data is a power of 2
     sample_log = math.log2(sample_size)
-    assert sample_log == int(sample_log)
+    if sample_log != int(sample_log):
+        print(f'sample_log:{sample_log}')
+        print(f'sample_size:{int(sample_size)}')
+        raise ValueError
 
     # recursion step
     evens = sample[0:-1:2]
@@ -36,18 +46,15 @@ def _fft_recursive(sample, inverse_coefficient):
     return np.asarray(freq_bins1 + freq_bins2)
 
 
-def fft(sample, inverse=False):
-    sample = power2_cutoff(sample, down=False)
-    results = _fft_recursive(sample, 1 if inverse else -1)
-    if inverse:
-        results = results / len(sample)
-    return results
+def power2_round_down(sample):
+    cutoff = 2 ** int(math.log2(len(sample)))
+    return sample[:cutoff]
 
 
-def get_frequency_bins(fft_result):
-    cutoff_fft_result = fft_result[:int(len(fft_result) / 2)]
-    amplitudes = [(complex_norm(e) * 2) / len(fft_result) for e in cutoff_fft_result]
-    return amplitudes
+def power2_round_up(sample):
+    cutoff = 2 ** math.ceil(math.log2(len(sample)))
+    padding = [0] * (cutoff - len(sample))
+    return np.concatenate((sample, padding))
 
 
 def plot(sampling_rate, data_pts, fft_results):
@@ -65,16 +72,27 @@ def plot(sampling_rate, data_pts, fft_results):
     plt.show()
 
 
-def power2_cutoff(sample, down=True):
-    cutoff_log = math.log2(len(sample))
-    cutoff_log = int(cutoff_log) if down else math.ceil(cutoff_log)
-    cutoff = 2 ** cutoff_log
-    return sample[:cutoff]
+def get_frequency_bins(fft_result):
+    cutoff_fft_result = fft_result[:int(len(fft_result) / 2)]
+    amplitudes = [(complex_norm(e) * 2) / len(fft_result) for e in cutoff_fft_result]
+    return amplitudes
 
 
 def complex_norm(complex_num):
     return math.sqrt(complex_num.real ** 2 + complex_num.imag ** 2)
 
+
+# ## GUI stuff ## #
+
+
+def get_file():
+    files = list((Path.cwd()/'wav_files').iterdir())
+    for i, f in enumerate(files):
+        print(f'{i+1}.{f.name}')
+    return files[int(input('>> ')) - 1]
+
+
+# ## Testing area ## #
 
 def test_fft_comparison():
     sample = np.asarray([0, 0.707, 1, 0.707, 0, -0.707, -1, -0.707])
@@ -98,15 +116,11 @@ def testing():
     print('----- All tests passed -----')
 
 
-def f(t):
-    pi = math.pi
-    expr1 = 2 * math.cos(pi/2 * t - pi)
-    expr2 = 3 * math.cos(pi * t)
-    return 5 + expr1 + expr2
-
-
 if __name__ == '__main__':
     testing()
-    sampling_rate, sample = wf.read('wav_files\\speech_modified.wav')
+    file = get_file()
+    print(file)
+    sampling_rate, sample = wf.read(file)
+    sample = power2_round_down(sample)
     fft_results = fft(sample)
     plot(sampling_rate, sample, fft_results)
