@@ -37,54 +37,30 @@ def _fft_recursive(sample, inverse_coefficient):
 
 
 def fft(sample, inverse=False):
+    sample = power2_cutoff(sample, down=False)
     results = _fft_recursive(sample, 1 if inverse else -1)
     if inverse:
         results = results / len(sample)
     return results
 
 
-# def build_frequency_bins(sampling_rate, fft_result):
-#     freq_res = sampling_rate / len(fft_result)
-#     nyquist_limit = int(sampling_rate / 2)
-#     cutoff_fft_result = fft_result[:int(nyquist_limit / freq_res)]
-#     amplitudes = [(complex_norm(e) * 2) / len(fft_result) for e in cutoff_fft_result]
-#     plot_frequency_bins(sampling_rate, amplitudes, freq_res)
+def get_frequency_bins(fft_result):
+    cutoff_fft_result = fft_result[:int(len(fft_result) / 2)]
+    amplitudes = [(complex_norm(e) * 2) / len(fft_result) for e in cutoff_fft_result]
+    return amplitudes
 
 
-# def plot_wave(sampling_rate, data_pts):
-#     x = np.linspace(0, len(data_pts) / sampling_rate, len(data_pts))
-#     y = data_pts
-#     fig, ax = plt.subplots()
-#     plt.xlabel("Time")
-#     plt.ylabel("Amplitude")
-#     ax.plot(x, y, linewidth=1.0)
-#     plt.show()
-#
-#
-# def plot_frequency_bins(sampling_rate, amplitudes, freq_res):
-#     # data
-#     x = np.arange(0, sampling_rate / 2, freq_res)
-#     y = amplitudes
-#
-#     # plot
-#     fig, ax = plt.subplots()
-#     plt.xlabel("Frequency")
-#     plt.ylabel("Amplitude")
-#     ax.stem(x, y)
-#     ax.set(xlim=(0, len(amplitudes)))
-#     plt.show()
-
-
-def plot(sampling_rate, data_pts, freq_res, amplitudes):
+def plot(sampling_rate, data_pts, fft_results):
     fig, axs = plt.subplots(2)
     fig.suptitle('Wave and Frequency bins')
     x1 = np.linspace(0, len(data_pts) / sampling_rate, len(data_pts))
     y1 = data_pts
-    axs[0].plot(x1, y1, linewidth=1.0)
+    axs[0].plot(x1, y1, linewidth=0.8)
 
+    freq_res = sampling_rate / len(fft_results)
     x2 = np.arange(0, sampling_rate / 2, freq_res)
-    y2 = amplitudes
-    axs[1].stem(x2, y2)
+    y2 = get_frequency_bins(fft_results)
+    axs[1].plot(x2, y2, linewidth=0.8)
 
     plt.show()
 
@@ -116,6 +92,12 @@ def test_inverse():
     assert (np.abs(sample - inverse_results) >= eps).sum() == 0
 
 
+def testing():
+    test_fft_comparison()
+    test_inverse()
+    print('----- All tests passed -----')
+
+
 def f(t):
     pi = math.pi
     expr1 = 2 * math.cos(pi/2 * t - pi)
@@ -124,23 +106,7 @@ def f(t):
 
 
 if __name__ == '__main__':
-    test_fft_comparison()
-    test_inverse()
-    print('----- All tests passed -----')
-
-    sampling_rate, sample = wf.read('wav_files\\220hz.wav')
-    sample = power2_cutoff(sample)
-    x = np.linspace(0, len(sample) / sampling_rate, len(sample))
-    y = sample
-    graph1 = (x, y)
-
-    fft_result = fft(sample)
-    freq_res = sampling_rate / len(fft_result)
-    nyquist_limit = int(sampling_rate / 2)
-    cutoff_fft_result = fft_result[:int(nyquist_limit / freq_res)]
-    amplitudes = [(complex_norm(e) * 2) / len(fft_result) for e in cutoff_fft_result]
-    print(amplitudes)
-    plot(sampling_rate, sample, freq_res, amplitudes)
-
-
-
+    testing()
+    sampling_rate, sample = wf.read('wav_files\\speech_modified.wav')
+    fft_results = fft(sample)
+    plot(sampling_rate, sample, fft_results)
