@@ -6,6 +6,7 @@ import numpy as np
 from numpy import fft as npfft
 from pathlib import Path
 
+
 def fft(sample, inverse=False):
     results = _fft_recursive(sample, 1 if inverse else -1)
     if inverse:
@@ -124,3 +125,8 @@ if __name__ == '__main__':
     sample = power2_round_down(sample)
     fft_results = fft(sample)
     plot(sampling_rate, sample, fft_results)
+    inverse_results = np.real(fft(fft_results, inverse=True)).astype(np.int16)
+    print(sample[:10])
+    print(inverse_results[:10])
+    path = Path.cwd()/'wav_files'/'test.wav'
+    wf.write(path, sampling_rate, inverse_results)
