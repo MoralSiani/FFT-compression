@@ -81,7 +81,6 @@ def plot_fft(sampling_rate, data_pts, fft_results):
     plt.show()
 
 
-
 def test_fft_comparison():
     sample = np.asarray([0, 0.707, 1, 0.707, 0, -0.707, -1, -0.707])
     my_results = fft(sample)
