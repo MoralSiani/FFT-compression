@@ -31,18 +31,18 @@ def _fft_recursive(sample, inverse_coefficient):
     odds = sample[1:sample_size:2]
     feven, fodd = _fft_recursive(evens, inverse_coefficient), _fft_recursive(odds, inverse_coefficient)
 
-    # calculating frequncy bins
+    # calculating domain bins
     coeff_const = inverse_coefficient * (2j * cmath.pi) / sample_size
     half_sample_size = int(sample_size / 2)
-    freq_bins1 = []
-    freq_bins2 = []
+    domain_bins1 = []
+    domain_bins2 = []
     for k in range(half_sample_size):
         f_k = feven[k] + cmath.exp(coeff_const * k) * fodd[k]
-        freq_bins1.append(f_k)
+        domain_bins1.append(f_k)
         k2 = k + half_sample_size
         f_k2 = feven[k] + cmath.exp(coeff_const * k2) * fodd[k]
-        freq_bins2.append(f_k2)
-    return np.asarray(freq_bins1 + freq_bins2)
+        domain_bins2.append(f_k2)
+    return np.asarray(domain_bins1 + domain_bins2)
 
 
 def power2_round_down(sample):
@@ -56,9 +56,9 @@ def power2_round_up(sample):
     return np.concatenate((sample, padding))
 
 
-def get_frequency_bins(fft_result):
-    cutoff_fft_result = fft_result[:int(len(fft_result) / 2)]
-    amplitudes = [(complex_norm(e) * 2) / len(fft_result) for e in cutoff_fft_result]
+def get_frequency_bins(freq_domain):
+    cutoff_fft_result = freq_domain[:int(len(freq_domain) / 2)]
+    amplitudes = [(complex_norm(e) * 2) / len(freq_domain) for e in cutoff_fft_result]
     return amplitudes
 
 
@@ -66,16 +66,16 @@ def complex_norm(complex_num):
     return math.sqrt(complex_num.real ** 2 + complex_num.imag ** 2)
 
 
-def plot_fft(sampling_rate, data_pts, fft_results):
+def plot_fft(sampling_rate, time_domain, freq_domain):
     fig, axs = plt.subplots(2)
     fig.suptitle('Wave and Frequency bins')
-    x1 = np.linspace(0, len(data_pts) / sampling_rate, len(data_pts))
-    y1 = data_pts
+    x1 = np.linspace(0, len(time_domain) / sampling_rate, len(time_domain))
+    y1 = time_domain
     axs[0].plot(x1, y1, linewidth=0.8)
 
-    freq_res = sampling_rate / len(fft_results)
+    freq_res = sampling_rate / len(freq_domain)
     x2 = np.arange(0, sampling_rate / 2, freq_res)
-    y2 = get_frequency_bins(fft_results)
+    y2 = get_frequency_bins(freq_domain)
     axs[1].plot(x2, y2, linewidth=0.8)
 
     plt.show()
