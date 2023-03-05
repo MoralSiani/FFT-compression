@@ -45,16 +45,22 @@ def decompress(compressed_data):
     original_time_domain_size = int(np.real(compressed_data[0]))
     sampling_rate = int(np.real(compressed_data[1]))
     dtype = dtypes[int(np.real(compressed_data[2]))]
+    freq_domain = compressed_data[3:-1]
     padding = int(np.real(compressed_data[-1]))
-    print('Decompressing...')
+
     # run inverted fft
-    padded_freq_domain = np.concatenate((compressed_data[3:-1], [0] * padding))
+    print('Decompressing...')
+    padded_freq_domain = padd_freq_domain(freq_domain, padding)
     time_domain = np.real(fft.inverse_fft(padded_freq_domain)).astype(dtype)
 
     # resize and save
     time_domain = time_domain[0:original_time_domain_size]
     print('Decompress complete')
     return sampling_rate, time_domain
+
+
+def padd_freq_domain(freq_domain, padding):
+    return np.concatenate((freq_domain, [0] * padding))
 
 
 def compress_and_write(wav_file_path, out_file_path):

@@ -1,20 +1,20 @@
 import cmath
 import math
+import pandas as pd
 from numpy import fft as npfft
 import numpy as np
-import matplotlib.pyplot as plt
 
 
 def fft(time_domain):
     """Receive complex/real type time domain, returns complex freq domain"""
-    results = _fft_recursive(time_domain, -1)
-    return results
+    freq_domain = _fft_recursive(time_domain, -1)
+    return freq_domain
 
 
 def inverse_fft(freq_domain):
     """Receive complex type freq domain, returns complex type time domain"""
-    results = _fft_recursive(freq_domain, 1)
-    return results / len(freq_domain)
+    time_domain = _fft_recursive(freq_domain, 1)
+    return time_domain / len(freq_domain)
 
 
 def _fft_recursive(sample, inverse_coefficient):
@@ -69,23 +69,32 @@ def get_frequency_bins(freq_domain):
     return amplitudes
 
 
+def get_time_axis(sampling_rate, time_domain):
+    return np.linspace(0, len(time_domain) / sampling_rate, len(time_domain))
+
+
+def get_freq_axis(sampling_rate, freq_domain):
+    freq_res = sampling_rate / len(freq_domain)
+    return np.arange(0, sampling_rate / 2, freq_res)
+
+
 def complex_norm(complex_num):
     return math.sqrt(complex_num.real ** 2 + complex_num.imag ** 2)
 
 
-def plot_fft(sampling_rate, time_domain, freq_domain):
-    fig, axs = plt.subplots(2)
-    fig.suptitle('Wave and Frequency bins')
-    x1 = np.linspace(0, len(time_domain) / sampling_rate, len(time_domain))
+def get_axes(sampling_rate, time_domain, freq_domain):
+    """Returns time and frequency domains' graphs in a dataframe.
+    Used for plotting with plotly"""
+    x1 = get_time_axis(sampling_rate, time_domain)
     y1 = time_domain
-    axs[0].plot(x1, y1, linewidth=0.8)
+    pd_time_domain = pd.DataFrame(np.array([x1, y1]).T, columns=['time', 'magnitude'])
 
     freq_res = sampling_rate / len(freq_domain)
     x2 = np.arange(0, sampling_rate / 2, freq_res)
     y2 = get_frequency_bins(freq_domain)
-    axs[1].plot(x2, y2, linewidth=0.8)
+    pd_freq_domain = pd.DataFrame(np.array([x2, y2]).T, columns=['frequency', 'magnitude'])
 
-    plt.show()
+    return pd_time_domain, pd_freq_domain
 
 
 def test_fft_comparison():

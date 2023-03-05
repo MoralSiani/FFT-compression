@@ -19,7 +19,6 @@ def plot_time_and_freq(time_domain, freq_domain, path):
                [{"type": "scatter"}]],
         subplot_titles=("Time domain", "Frequency domain")
     )
-
     fig.add_trace(
         go.Scatter(x=time_domain['time'], y=time_domain['magnitude'], mode='lines'), row=1, col=1)
 
