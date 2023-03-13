@@ -1,13 +1,18 @@
 from pathlib import Path
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
+from scipy.io import wavfile as wf
 
 
-def get_file():
+def select_file():
     files = list((Path.cwd()/'wav_files').iterdir())
     for i, f in enumerate(files):
         print(f'{i+1}.{f.name}')
     return files[int(input('>> ')) - 1]
+
+
+def get_file(file_path):
+    return wf.read(file_path)
 
 
 def plot_time_and_freq(time_domain, freq_domain, path):

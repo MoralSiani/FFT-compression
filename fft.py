@@ -56,7 +56,7 @@ def power2_round_down(sample):
 
 
 def power2_round_up(sample):
-    """Returns a rounded up zero-padded time_domain to the closest power of 2"""
+    """Returns a rounded up zero-padded time_domain as ndarray to the closest power of 2"""
     cutoff = 2 ** math.ceil(math.log2(len(sample)))
     padding = [0] * (cutoff - len(sample))
     return np.concatenate((sample, padding))
@@ -83,19 +83,21 @@ def complex_norm(complex_num):
 
 
 def get_axes(sampling_rate, time_domain, freq_domain):
-    """Returns time and frequency domains' graphs in a dataframe.
+    """Returns time and frequency domains' x and y values as a dataframe.
     Used for plotting with plotly"""
     x1 = get_time_axis(sampling_rate, time_domain)
     y1 = time_domain
-    pd_time_domain = pd.DataFrame(np.array([x1, y1]).T, columns=['time', 'magnitude'])
+    time_domain_df = pd.DataFrame(np.array([x1, y1]).T, columns=['time', 'magnitude'])
 
     freq_res = sampling_rate / len(freq_domain)
     x2 = np.arange(0, sampling_rate / 2, freq_res)
     y2 = get_frequency_bins(freq_domain)
-    pd_freq_domain = pd.DataFrame(np.array([x2, y2]).T, columns=['frequency', 'magnitude'])
+    freq_domain_df = pd.DataFrame(np.array([x2, y2]).T, columns=['frequency', 'magnitude'])
 
-    return pd_time_domain, pd_freq_domain
+    return time_domain_df, freq_domain_df
 
+
+# ### Testing ### #
 
 def test_fft_comparison():
     sample = np.asarray([0, 0.707, 1, 0.707, 0, -0.707, -1, -0.707])

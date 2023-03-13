@@ -1,6 +1,8 @@
 import numpy as np
 from scipy.io import wavfile as wf
 import fft
+import util
+import os
 
 
 dtypes = [np.uint8, np.int16, np.int32, np.float32]
@@ -22,7 +24,7 @@ def compress(sampling_rate, time_domain):
     compressed_freq_domain, padding = compress_freq_domain(freq_domain, freq_res)
     output_array = np.concatenate(([original_time_domain_size], [sampling_rate],
                                    [dtype_idx], compressed_freq_domain, [padding]))
-    print('Compress complete')
+    print('Compression complete')
     return output_array
 
 
@@ -50,16 +52,16 @@ def decompress(compressed_data):
 
     # run inverted fft
     print('Decompressing...')
-    padded_freq_domain = padd_freq_domain(freq_domain, padding)
+    padded_freq_domain = pad_freq_domain(freq_domain, padding)
     time_domain = np.real(fft.inverse_fft(padded_freq_domain)).astype(dtype)
 
     # resize and save
     time_domain = time_domain[0:original_time_domain_size]
-    print('Decompress complete')
+    print('Decompression complete')
     return sampling_rate, time_domain
 
 
-def padd_freq_domain(freq_domain, padding):
+def pad_freq_domain(freq_domain, padding):
     return np.concatenate((freq_domain, [0] * padding))
 
 
@@ -75,4 +77,25 @@ def decompress_and_write(compressed_file_path, out_file_path):
     compressed_data = np.load(compressed_file_path)
     sampling_rate, time_domain = decompress(compressed_data)
     wf.write(out_file_path, sampling_rate, time_domain)
+
+
+def analyze_wav(wav_file_path, output_dir):
+    output_dir.mkdir(parents=True, exist_ok=True)
+    sampling_rate, time_domain = util.get_file(wav_file_path)
+    time_domain = fft.power2_round_down(time_domain)
+    freq_domain = fft.fft(time_domain)
+    path = output_dir / f'{wav_file_path.stem} - before compression.html'
+    time_graph, freq_graph = fft.get_axes(sampling_rate, time_domain, freq_domain)
+    util.plot_time_and_freq(time_graph, freq_graph, path)
+    os.startfile(path)
+
+    compressed_data = compress(sampling_rate, time_domain)
+    freq_domain = compressed_data[3:-1]
+    padding = int(np.real(compressed_data[-1]))
+    new_freq_domain = pad_freq_domain(freq_domain, padding)
+    sampling_rate, new_time_domain = decompress(compressed_data)
+    path = output_dir / f'{wav_file_path.stem} - after compression.html'
+    time_graph, freq_graph = fft.get_axes(sampling_rate, new_time_domain, new_freq_domain)
+    util.plot_time_and_freq(time_graph, freq_graph, path)
+    os.startfile(path)
 
