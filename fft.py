@@ -1,8 +1,58 @@
 import cmath
 import math
-import pandas as pd
 from numpy import fft as npfft
 import numpy as np
+
+
+# ### 2D FFT ### #
+
+def fft2d_with_channels(image):
+    # run 2d fft for each channel
+    results = np.apply_over_axes(fft2d, image, axes=-1)
+    return results
+
+
+def fft2d(image, *args):
+    # vertical fft
+    vertical_freq_domain = vertical_fft2d(image)
+    # horizontal fft
+    freq_domain = horizontal_fft2d(vertical_freq_domain)
+    return freq_domain
+
+
+def vertical_fft2d(data):
+    return np.apply_along_axis(fft, axis=1, arr=data)
+
+
+def horizontal_fft2d(data):
+    return np.apply_along_axis(fft, axis=0, arr=data)
+
+
+# ### 2D inverse FFT ### #
+
+def inverse_fft2d_with_channels(freq_domain):
+    # run 2d inverse fft for each channel
+    inverse_results = np.apply_over_axes(inverse_fft2d, freq_domain, axes=-1)
+    return inverse_results
+
+
+def inverse_fft2d(freq_domain, *args):
+    # horizontal inverse fft
+    horizontal_image_domain = horizontal_inverse_fft2d(freq_domain)
+    # vertical inverse fft
+    image = vertical_inverse_fft2d(horizontal_image_domain)
+    return image
+
+
+def vertical_inverse_fft2d(data):
+    return np.apply_along_axis(inverse_fft, axis=1, arr=data)
+
+
+def horizontal_inverse_fft2d(data):
+    return np.apply_along_axis(inverse_fft, axis=0, arr=data)
+
+
+# ### 1D FFT ### #
 
 
 def fft(time_domain):
@@ -47,54 +97,6 @@ def _fft_recursive(sample, inverse_coefficient):
         f_k2 = feven[k] + cmath.exp(coeff_const * k2) * fodd[k]
         domain_bins2.append(f_k2)
     return np.asarray(domain_bins1 + domain_bins2)
-
-
-def power2_round_down(sample):
-    """Returns a rounded down truncated time_domain to the closest power of 2"""
-    cutoff = 2 ** int(math.log2(len(sample)))
-    return sample[:cutoff]
-
-
-def power2_round_up(sample):
-    """Returns a rounded up zero-padded time_domain as ndarray to the closest power of 2"""
-    cutoff = 2 ** math.ceil(math.log2(len(sample)))
-    padding = [0] * (cutoff - len(sample))
-    return np.concatenate((sample, padding))
-
-
-def get_frequency_bins(freq_domain):
-    """Given a frequency domain, returns the frequency bins' amplitudes (y-axis for plotting)"""
-    cutoff_fft_result = freq_domain[:int(len(freq_domain) / 2)]
-    amplitudes = [(complex_norm(e) * 2) / len(freq_domain) for e in cutoff_fft_result]
-    return amplitudes
-
-
-def get_time_axis(sampling_rate, time_domain):
-    return np.linspace(0, len(time_domain) / sampling_rate, len(time_domain))
-
-
-def get_freq_axis(sampling_rate, freq_domain):
-    freq_res = sampling_rate / len(freq_domain)
-    return np.arange(0, sampling_rate / 2, freq_res)
-
-
-def complex_norm(complex_num):
-    return math.sqrt(complex_num.real ** 2 + complex_num.imag ** 2)
-
-
-def get_axes(sampling_rate, time_domain, freq_domain):
-    """Returns time and frequency domains' x and y values as a dataframe.
-    Used for plotting with plotly"""
-    x1 = get_time_axis(sampling_rate, time_domain)
-    y1 = time_domain
-    time_domain_df = pd.DataFrame(np.array([x1, y1]).T, columns=['time', 'magnitude'])
-
-    freq_res = sampling_rate / len(freq_domain)
-    x2 = np.arange(0, sampling_rate / 2, freq_res)
-    y2 = get_frequency_bins(freq_domain)
-    freq_domain_df = pd.DataFrame(np.array([x2, y2]).T, columns=['frequency', 'magnitude'])
-
-    return time_domain_df, freq_domain_df
 
 
 # ### Testing ### #
