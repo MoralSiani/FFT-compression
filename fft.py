@@ -21,11 +21,11 @@ def fft2d(image, *args):
 
 
 def vertical_fft2d(data):
-    return np.apply_along_axis(fft, axis=1, arr=data)
+    return np.apply_along_axis(fft, axis=0, arr=data)
 
 
 def horizontal_fft2d(data):
-    return np.apply_along_axis(fft, axis=0, arr=data)
+    return np.apply_along_axis(fft, axis=1, arr=data)
 
 
 # ### 2D inverse FFT ### #

@@ -1,16 +1,10 @@
 import util
 from wav_compression import compress_and_write, decompress_and_write, analyze_wav
-from bmp_compression import show_ndarray_image, compress, decompress
+from bmp_compression import compress, decompress, plot_image
 from PIL import Image
 from pathlib import Path
 import numpy as np
 import fft
-
-
-def normalize_frequencies(frequencies):
-    freq_real_component = np.abs(frequencies)
-    max_value = np.max(freq_real_component)
-    return ((freq_real_component / max_value) ** (1/5)) * 255
 
 
 def run_wav_compression():
@@ -34,28 +28,35 @@ def run_bmp_compression():
     file = util.select_bmp_file()
     image = Image.open(file)
     image_domain = np.array(image)
-    print(image_domain.shape)
-    print(image_domain.dtype)
-    show_ndarray_image(image_domain, Path.cwd() / f'analysis_files' / f'{file.stem}-original.html')
 
     # Horizontal 2D fft
     horizontal_freq_domain = fft.horizontal_fft2d(image_domain)
-    normalized_horizontal_freq = normalize_frequencies(horizontal_freq_domain)
-    show_ndarray_image(normalized_horizontal_freq, Path.cwd() / f'analysis_files' / f'{file.stem}-Hfreq.html')
+    normalized_horizontal_freq = util.normalize_complex_frequencies(horizontal_freq_domain)
 
     # Vertical 2D fft
     vertical_freq_domain = fft.vertical_fft2d(image_domain)
-    normalized_vertical_freq = normalize_frequencies(vertical_freq_domain)
-    show_ndarray_image(normalized_vertical_freq, Path.cwd() / f'analysis_files' / f'{file.stem}-Vfreq.html')
+    normalized_vertical_freq = util.normalize_complex_frequencies(vertical_freq_domain)
 
     # 2D fft
     freq_domain = compress(image_domain)
-    normalized_freq = normalize_frequencies(freq_domain.copy())
-    show_ndarray_image(normalized_freq, Path.cwd() / f'analysis_files' / f'{file.stem}-freq.html')
+    normalized_freq = util.normalize_complex_frequencies(freq_domain)
+
+    # Plot 2D fft
+    output_dir = Path.cwd() / f'analysis_files' / f'{file.stem}-forward.html'
+    plot_image(image_domain, normalized_freq, normalized_horizontal_freq, normalized_vertical_freq, output_dir)
 
     # inverse 2D fft
-    image_domain = np.real(decompress(freq_domain))
-    show_ndarray_image(image_domain, Path.cwd() / f'analysis_files' / f'{file.stem}-inverse.html')
+    inverse_image_domain = np.real(decompress(freq_domain))
+
+    # Horizontal inverse 2D fft
+    horizontal_image_domain = util.normalize_complex_frequencies(fft.horizontal_inverse_fft2d(freq_domain))
+
+    # Vertical inverse 2D fft
+    vertical_image_domain = util.normalize_complex_frequencies(fft.vertical_inverse_fft2d(freq_domain))
+
+    # Plot inverse 2D fft
+    output_dir = Path.cwd() / f'analysis_files' / f'{file.stem}-inverse.html'
+    plot_image(inverse_image_domain, normalized_freq, horizontal_image_domain, vertical_image_domain, output_dir)
 
 
 if __name__ == '__main__':
