@@ -35,11 +35,4 @@ def power2_round_up(sample):
     return np.concatenate((sample, padding))
 
 
-def normalize_complex_frequencies(frequencies):
-    # returns the real component normalized between 0-255
-    freq_real_component = np.abs(frequencies)
-    max_value = np.max(freq_real_component)
-    return ((freq_real_component / max_value) ** (1/5)) * 255
-
-
 

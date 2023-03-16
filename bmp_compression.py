@@ -74,3 +74,23 @@ def plot_image(image, freq_domain, h_freq, v_freq, output_dir):
     )
     fig.write_html(output_dir)
     os.startfile(output_dir)
+
+
+def center_and_normalize_frequencies(frequencies):
+    # returns the real component normalized between 0-255 with centered axes.
+    freq_real_component = np.abs(frequencies)
+    max_value = np.max(freq_real_component)
+    return center_axes(((freq_real_component / max_value) ** (1/5)) * 255)
+
+
+def center_axes(freq_domain):
+    freq_domain_len = len(freq_domain)
+    h_half_len = int(len(freq_domain[0]) / 2)
+    v_half_len = int(len(freq_domain[1]) / 2)
+    up_left = freq_domain[0:h_half_len, 0:v_half_len]
+    up_right = freq_domain[0:h_half_len, v_half_len:freq_domain_len]
+    down_left = freq_domain[h_half_len:freq_domain_len, 0:v_half_len]
+    down_right = freq_domain[h_half_len:freq_domain_len, v_half_len:freq_domain_len]
+    up = np.hstack((down_right, down_left))
+    down = np.hstack((up_right, up_left))
+    return np.vstack((up, down))
