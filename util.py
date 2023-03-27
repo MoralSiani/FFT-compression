@@ -18,7 +18,7 @@ def select_bmp_file():
     return files[int(input('>> ')) - 1]
 
 
-def get_file(file_path):
+def read_file(file_path):
     return wf.read(file_path)
 
 

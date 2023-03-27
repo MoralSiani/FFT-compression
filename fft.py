@@ -67,7 +67,7 @@ def inverse_fft(freq_domain):
     return time_domain / len(freq_domain)
 
 
-def _fft_recursive(sample, inverse_coefficient):
+def _fft_recursive(sample, inverse_coefficient) -> np.ndarray:
     """converts between time and freq domains given an inverse coefficient.
     inverse coefficient is 1 when inversing, otherwise -1"""
     # break condition

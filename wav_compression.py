@@ -7,8 +7,8 @@ import pandas as pd
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 
-
 dtypes = [np.uint8, np.int16, np.int32, np.float32]
+FREQUENCY = 'frequency'
 
 
 # ### compression ### #
@@ -29,15 +29,15 @@ def compress(sampling_rate, time_domain):
 
     # run fft
     print('Compressing...')
-    time_domain = util.power2_round_up(time_domain)
-    freq_domain = fft.fft(time_domain)
+    rounded_time_domain = util.power2_round_up(time_domain)
+    freq_domain = fft.fft(rounded_time_domain)
 
-    # compress_and_write and save
+    # compress and return
     compressed_freq_domain, padding = compress_freq_domain(freq_domain, freq_res)
-    output_array = np.concatenate(([original_time_domain_size], [sampling_rate],
-                                   [dtype_idx], compressed_freq_domain, [padding]))
+    compressed_data = np.concatenate(([original_time_domain_size], [sampling_rate],
+                                      [dtype_idx], compressed_freq_domain, [padding]))
     print('Compression complete')
-    return output_array
+    return compressed_data
 
 
 def compress_freq_domain(freq_domain, freq_res):
@@ -86,23 +86,35 @@ def decompress(compressed_data):
 
 def analyze_wav(wav_file_path, output_dir):
     output_dir.mkdir(parents=True, exist_ok=True)
-    sampling_rate, time_domain = util.get_file(wav_file_path)
+    # Read data
+    sampling_rate, time_domain = util.read_file(wav_file_path)
+    # fft to calculate freq. domain
     time_domain = util.power2_round_down(time_domain)
     freq_domain = fft.fft(time_domain)
-    path = output_dir / f'{wav_file_path.stem} - before compression.html'
-    time_graph, freq_graph = get_axes(sampling_rate, time_domain, freq_domain)
-    plot_time_and_freq(time_graph, freq_graph, path)
-    os.startfile(path)
-
+    # Plotting
+    time_graph, freq_graph = get_axes_as_df(sampling_rate, time_domain, freq_domain)
+    before_compression_html = output_dir / f'{wav_file_path.stem}_before_compression.html'
+    plot_time_and_freq(time_graph, freq_graph, before_compression_html)
+    os.startfile(before_compression_html)
+    # Compression
     compressed_data = compress(sampling_rate, time_domain)
+    # Decompression
     freq_domain = compressed_data[3:-1]
     padding = int(np.real(compressed_data[-1]))
     new_freq_domain = np.concatenate((freq_domain, [0] * padding))
     sampling_rate, new_time_domain = decompress(compressed_data)
-    path = output_dir / f'{wav_file_path.stem} - after compression.html'
-    time_graph, freq_graph = get_axes(sampling_rate, new_time_domain, new_freq_domain)
-    plot_time_and_freq(time_graph, freq_graph, path)
-    os.startfile(path)
+    # Plotting
+    time_graph, freq_graph = get_axes_as_df(sampling_rate, new_time_domain, new_freq_domain)
+    after_compression_html = output_dir / f'{wav_file_path.stem}_after_compression.html'
+    plot_time_and_freq(time_graph, freq_graph, after_compression_html)
+    os.startfile(after_compression_html)
+
+
+def get_padded_frequency_domain(compressed_data):
+    freq_domain = compressed_data[3:-1]
+    padding = int(np.real(compressed_data[-1]))
+    padded_freq_domain = np.concatenate((freq_domain, [0] * padding))
+    return padded_freq_domain
 
 
 # ### Plotting ### #
@@ -163,7 +175,7 @@ def get_freq_axis(sampling_rate, freq_domain):
     return np.arange(0, sampling_rate / 2, freq_res)
 
 
-def get_axes(sampling_rate, time_domain, freq_domain):
+def get_axes_as_df(sampling_rate, time_domain, freq_domain):
     """Returns time and frequency domains' x and y values as a dataframe.
     Used for plotting with plotly"""
     x1 = get_time_axis(sampling_rate, time_domain)
@@ -172,6 +184,6 @@ def get_axes(sampling_rate, time_domain, freq_domain):
 
     x2 = get_freq_axis(sampling_rate, freq_domain)
     y2 = get_frequency_bins(freq_domain)
-    freq_domain_df = pd.DataFrame(np.array([x2, y2]).T, columns=['frequency', 'magnitude'])
+    freq_domain_df = pd.DataFrame(np.array([x2, y2]).T, columns=[FREQUENCY, 'magnitude'])
 
     return time_domain_df, freq_domain_df
