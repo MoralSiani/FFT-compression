@@ -88,6 +88,8 @@ def _fft_recursive(sample, inverse_coefficient) -> np.ndarray:
     # calculating domain bins
     coeff_const = inverse_coefficient * (2j * cmath.pi) / sample_size
     half_sample_size = int(sample_size / 2)
+    # domain_bins1 = feven + np.exp(coeff_const * np.arange(half_sample_size)) * fodd
+    # domain_bins1 = feven + np.exp(coeff_const * np.arange(half_sample_size, 2 * half_sample_size)) * fodd
     domain_bins1 = []
     domain_bins2 = []
     for k in range(half_sample_size):

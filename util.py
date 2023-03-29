@@ -2,6 +2,7 @@ from pathlib import Path
 from scipy.io import wavfile as wf
 import math
 import numpy as np
+import os
 
 
 def select_wav_file():
@@ -18,8 +19,18 @@ def select_bmp_file():
     return files[int(input('>> ')) - 1]
 
 
-def read_file(file_path):
+def read_wav_file(file_path):
     return wf.read(file_path)
+
+
+def write_to_wav_file(file_path, sampling_rate, time_domain):
+    wf.write(file_path, sampling_rate, time_domain)
+
+
+def np_save(file: Path, data):
+    file.parent.mkdir(parents=True, exist_ok=True)
+    np.save(file, data)
+    os.rename(f'{file}.npy', file)
 
 
 def power2_round_down(sample):

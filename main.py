@@ -1,31 +1,11 @@
 import argparse
-
 import util
-from wav_compression import compress_and_write, decompress_and_write, analyze_wav
-from bmp_compression import compress, decompress, plot_image, shift_axes, normalize_frequencies
+import wav_compression
+import bmp_compression
 from PIL import Image
 from pathlib import Path
 import numpy as np
 import fft
-
-
-def run_wav_compression(file_name):
-    # file = util.select_wav_file()
-    print(f'{file_name = }')
-    file_path = parse_file(file_name)
-    print(f'{file_path = }')
-    output_dir = Path.cwd() / f'analysis_files'
-    analyze_wav(file_path, output_dir)
-
-    # Compress
-    path = Path.cwd() / f'compressed_files' / f'{file_path.stem}'
-    path.parent.mkdir(parents=True, exist_ok=True)
-    compress_and_write(file_path, path)
-
-    # Decompress
-    out_path = Path.cwd() / f'wav_files' / f'{file_path.stem}_modified.wav'
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-    decompress_and_write(f'{path}.npy', out_path)
 
 
 def run_bmp_compression(file):
@@ -53,7 +33,6 @@ def run_bmp_compression(file):
     # inverse 2D fft
     padding = int(padding)
     padded_freq_domain = np.pad(freq_domain, padding)
-    print(padded_freq_domain.shape)
     inverse_image_domain = np.real(decompress(freq_domain))
 
     # Horizontal inverse 2D fft
@@ -69,23 +48,45 @@ def run_bmp_compression(file):
 
 def get_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
-    parser.add_argument('-w', '--wav', help='wav file to compress')
-    parser.add_argument('-b', '--bmp', help='bmp file to compress')
+    parser.add_argument('file', help='input file (.wav or .bmp)')
+    parser.add_argument(
+        '-a',
+        '--analyze',
+        help='If true then also plots graphs',
+        action=argparse.BooleanOptionalAction
+    )
+    parser.add_argument('-o', '--output-dir', help='Output directory [default: data]', default='data')
+    parser.add_argument('-c', '--clear', help='Clear output directory', action=argparse.BooleanOptionalAction)
     return parser.parse_args()
 
 
-def parse_file(file_name):
-    if args.wav.endswith('wav'):
-        file_path = Path.cwd() / f'{file_name}'
-    elif args.wav.endswith('bmp'):
-        file_path = Path.cwd() / f'{file_name}'
-    else:
-        raise ValueError('file not supported')
-    return file_path
+def run(args):
+    print(args)
+    file = Path(args.file)
+    output_dir = (Path(args.output_dir))
+    output_dir.mkdir(parents=True, exist_ok=True)
+    match file.suffix, args.analyze:
+        case '.wav', None:
+            output_file = Path(output_dir / f'{file.stem}.wcmp')
+            wav_compression.compress_and_write(file, output_file)
+        case '.bmp', None:
+            pass
+        case '.wcmp', None:
+            output_file = output_dir / f'{file.stem}_modified.wav'
+            wav_compression.decompress_and_write(file, output_file)
+        case '.bcmp', None:
+            output_file = output_dir / f'{file.stem}_modified.bmp'
+        case '.wav', True:
+            wav_compression.analyze_wav(file, output_dir)
+        case '.bmp', True:
+            pass
+        case '.wcmp', True:
+            raise ValueError('Analysis not supported for compressed files')
+        case '.bcmp', True:
+            raise ValueError('Analysis not supported for compressed files')
+        case _:
+            raise ValueError('file not supported')
 
 
 if __name__ == '__main__':
-    args = get_args()
-    print(args.wav)
-    run_wav_compression(args.wav)
-
+    run(get_args())
