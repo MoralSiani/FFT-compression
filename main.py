@@ -52,7 +52,7 @@ def get_args() -> argparse.Namespace:
     parser.add_argument(
         '-a',
         '--analyze',
-        help='If true then also plots graphs',
+        help='compress, decompress and plot graphs (only work with bmp and wac files)',
         action=argparse.BooleanOptionalAction
     )
     parser.add_argument('-o', '--output-dir', help='Output directory [default: data]', default='data')
@@ -63,8 +63,12 @@ def get_args() -> argparse.Namespace:
 def run(args):
     print(args)
     file = Path(args.file)
-    output_dir = (Path(args.output_dir))
+    output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
+    if args.clear:
+        for f in list(output_dir.iterdir()):
+            os.remove(f)
+            print('Cleared output directory')
     match file.suffix, args.analyze:
         # wav file options
         case '.wav', None:

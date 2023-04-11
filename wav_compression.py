@@ -119,7 +119,6 @@ def analyze_wav(wav_file, output_dir):
         decompressed_time_domain,
         decompressed_freq_domain,
     )
-    plot_time_domain_diff(original_time_graph, decompressed_time_graph)
     analysis_file = output_dir / f'{wav_file.stem}_analysis.html'
     save_plot_time_and_freq(
         original_time_graph,
