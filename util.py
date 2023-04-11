@@ -28,8 +28,11 @@ def write_to_wav_file(file_path, sampling_rate, time_domain):
 
 
 def np_save(file: Path, data):
+    print(f'{file = }')
     file.parent.mkdir(parents=True, exist_ok=True)
     np.save(file, data)
+    if os.path.exists(file):
+        os.remove(file)
     os.rename(f'{file}.npy', file)
 
 

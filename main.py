@@ -66,20 +66,27 @@ def run(args):
     output_dir = (Path(args.output_dir))
     output_dir.mkdir(parents=True, exist_ok=True)
     match file.suffix, args.analyze:
+        # wav file options
         case '.wav', None:
             output_file = Path(output_dir / f'{file.stem}.wcmp')
-            wav_compression.compress_and_write(file, output_file)
-        case '.bmp', None:
-            pass
-        case '.wcmp', None:
-            output_file = output_dir / f'{file.stem}_modified.wav'
-            wav_compression.decompress_and_write(file, output_file)
-        case '.bcmp', None:
-            output_file = output_dir / f'{file.stem}_modified.bmp'
+            sampling_rate, time_domain = util.read_wav_file(file)
+            wav_compression.compress_and_write(sampling_rate, time_domain, output_file)
         case '.wav', True:
             wav_compression.analyze_wav(file, output_dir)
+        case '.wcmp', None:
+            compressed_data = np.load(file)
+            output_file = output_dir / f'{file.stem}_modified.wav'
+            wav_compression.decompress_and_write(compressed_data, output_file)
+
+        # bmp file options
+        case '.bmp', None:
+            pass
         case '.bmp', True:
             pass
+        case '.bcmp', None:
+            output_file = output_dir / f'{file.stem}_modified.bmp'
+
+        # Not supported options
         case '.wcmp', True:
             raise ValueError('Analysis not supported for compressed files')
         case '.bcmp', True:

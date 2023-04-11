@@ -8,18 +8,18 @@ from plotly.subplots import make_subplots
 from pathlib import Path
 
 dtypes = [np.uint8, np.int16, np.int32, np.float32]
-
+FREQ_CUTOFF = 3000
 
 # ### compression ### #
 
-def compress_and_write(wav_file: Path, output_file: Path):
+def compress_and_write(sampling_rate, time_domain, output_file: Path, freq_domain=None):
     """receive a wav file output_file and writes a compressed file to out_file_path"""
-    sampling_rate, time_domain = util.read_wav_file(wav_file)
-    compressed_data = compress(sampling_rate, time_domain)
+    compressed_data = compress(sampling_rate, time_domain, freq_domain)
     util.np_save(output_file, compressed_data)
+    return compressed_data
 
 
-def compress(sampling_rate, time_domain, freq_domain=None):
+def compress(sampling_rate, time_domain, freq_domain):
     """Returns a compressed array with metadata
     if given freq_domain, compress will not run fft"""
     # extract metadata
@@ -32,7 +32,7 @@ def compress(sampling_rate, time_domain, freq_domain=None):
 
     # compress and return
     print('Compressing...')
-    compressed_freq_domain, padding = compress_freq_domain(freq_domain, freq_res)
+    compressed_freq_domain, padding = compress_freq_domain_by_truncating(freq_domain, freq_res, FREQ_CUTOFF)
     compressed_data = np.concatenate((
         [original_time_domain_size],
         [sampling_rate],
@@ -44,26 +44,21 @@ def compress(sampling_rate, time_domain, freq_domain=None):
     return compressed_data
 
 
-def compress_freq_domain(freq_domain, freq_res):
-    """Compress the freq domain"""
-    freq_cutoff = compression_by_truncating(len(freq_domain), freq_res, freq_cutoff=3000)
-    compressed_freq_domain = freq_domain[0:freq_cutoff]
-    padding = len(freq_domain) - freq_cutoff
+def compress_freq_domain_by_truncating(freq_domain, freq_res, freq_cutoff):
+    """Compress the freq domain by truncating according to freq_cutoff"""
+    cutoff = min(len(freq_domain), int(freq_cutoff / freq_res))
+    compressed_freq_domain = freq_domain[0:cutoff]
+    padding = len(freq_domain) - cutoff
     return compressed_freq_domain, padding
-
-
-def compression_by_truncating(max_cutoff, freq_res, freq_cutoff):
-    """truncate the frequency domain"""
-    return min(max_cutoff, int(freq_cutoff / freq_res))
 
 
 # ### Decompression ### #
 
-def decompress_and_write(compressed_wav_file: Path, output_file: Path):
+def decompress_and_write(compressed_data, output_file: Path):
     """receive a compressed file output_file and write the decompressed wav file"""
-    compressed_data = np.load(compressed_wav_file)
     sampling_rate, time_domain = decompress(compressed_data)
     util.write_to_wav_file(output_file, sampling_rate, time_domain)
+    return sampling_rate, time_domain
 
 
 def decompress(compressed_data):
@@ -86,6 +81,12 @@ def decompress(compressed_data):
     return sampling_rate, time_domain
 
 
+def decompress_truncated_frequency_domain(compressed_data: np.ndarray):
+    compressed_freq_domain = compressed_data[3:-1]
+    padding = int(np.real(compressed_data[-1]))
+    return np.concatenate((compressed_freq_domain, [0] * padding))
+
+
 # ### Analysis ### #
 
 def analyze_wav(wav_file, output_dir):
@@ -98,18 +99,14 @@ def analyze_wav(wav_file, output_dir):
     time_domain = util.power2_round_down(input_time_domain)
     freq_domain = fft.fft(time_domain)
 
-    # Compress and save
-    compressed_data = compress(sampling_rate, input_time_domain, freq_domain=freq_domain)
-    compressed_file = output_dir / f'{wav_file.stem}.wcmp'
-    util.np_save(compressed_file, compressed_data)
+    # Compress and write
+    output_file = output_dir / f'{wav_file.stem}.wcmp'
+    compressed_data = compress_and_write(sampling_rate, input_time_domain, output_file, freq_domain=freq_domain)
 
-    # Decompress and save
-    compressed_freq_domain = compressed_data[3:-1]
-    padding = int(np.real(compressed_data[-1]))
-    decompressed_freq_domain = np.concatenate((compressed_freq_domain, [0]*padding))
-    _, decompressed_time_domain = decompress(compressed_data)
-    decompressed_file = output_dir / f'{wav_file.stem}_modified.wav'
-    util.write_to_wav_file(decompressed_file, sampling_rate, decompressed_time_domain)
+    # Decompress and write
+    decompressed_freq_domain = decompress_truncated_frequency_domain(compressed_data)
+    decompressed_wav_file = output_dir / f'{wav_file.stem}_modified.wav'
+    _, decompressed_time_domain = decompress_and_write(compressed_data, decompressed_wav_file)
 
     # get graphs and plot
     original_time_graph, original_freq_graph = get_axes_as_df(
@@ -122,9 +119,9 @@ def analyze_wav(wav_file, output_dir):
         decompressed_time_domain,
         decompressed_freq_domain,
     )
-
+    plot_time_domain_diff(original_time_graph, decompressed_time_graph)
     analysis_file = output_dir / f'{wav_file.stem}_analysis.html'
-    plot_time_and_freq(
+    save_plot_time_and_freq(
         original_time_graph,
         original_freq_graph,
         decompressed_time_graph,
@@ -134,14 +131,15 @@ def analyze_wav(wav_file, output_dir):
     os.startfile(analysis_file)
 
 
-def get_padded_frequency_domain(compressed_data):
-    freq_domain = compressed_data[3:-1]
-    padding = int(np.real(compressed_data[-1]))
-    padded_freq_domain = np.concatenate((freq_domain, [0] * padding))
-    return padded_freq_domain
+# ### Plotting ### #
 
-
-def plot_time_and_freq(time_domain, freq_domain, cmp_time_domain, cmp_freq_domain, output_file):
+def save_plot_time_and_freq(
+    time_domain,
+    freq_domain,
+    cmp_time_domain,
+    cmp_freq_domain,
+    output_file
+):
     fig = make_subplots(
         rows=2, cols=2,
         column_widths=[0.5, 0.5],
@@ -154,8 +152,8 @@ def plot_time_and_freq(time_domain, freq_domain, cmp_time_domain, cmp_freq_domai
         subplot_titles=(
             "Time domain",
             "Frequency domain",
-            "Compressed_time domain",
-            "Compressed_frequency domain"
+            "Decompressed_time domain",
+            "Decompressed_frequency domain"
         )
     )
     fig.add_trace(

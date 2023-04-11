@@ -118,6 +118,3 @@ def test_inverse():
     eps = 10 ** -5
     assert (np.abs(sample - inverse_results) >= eps).sum() == 0
 
-
-test_fft_comparison()
-test_inverse()
