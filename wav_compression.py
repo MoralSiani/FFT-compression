@@ -10,6 +10,7 @@ from pathlib import Path
 dtypes = [np.uint8, np.int16, np.int32, np.float32]
 FREQ_CUTOFF = 3000
 
+
 # ### compression ### #
 
 def compress_and_write(sampling_rate, time_domain, output_file: Path, freq_domain=None):
@@ -57,7 +58,7 @@ def compress_freq_domain_by_truncating(freq_domain, freq_res, freq_cutoff):
 def decompress_and_write(compressed_data, output_file: Path):
     """receive a compressed file output_file and write the decompressed wav file"""
     sampling_rate, time_domain = decompress(compressed_data)
-    util.write_to_wav_file(output_file, sampling_rate, time_domain)
+    util.write_wav_file(output_file, sampling_rate, time_domain)
     return sampling_rate, time_domain
 
 
@@ -90,7 +91,7 @@ def decompress_truncated_frequency_domain(compressed_data: np.ndarray):
 # ### Analysis ### #
 
 def analyze_wav(wav_file, output_dir):
-    """Given a wav file, calculate and saves an analysis file in output_dir, with time and
+    """Given a wav file, calculate and saves an analysis file in output_file, with time and
     frequency domains' graphs before and after compression and decompression."""
     # Read data
     sampling_rate, input_time_domain = util.read_wav_file(wav_file)

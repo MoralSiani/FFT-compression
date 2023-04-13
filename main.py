@@ -8,6 +8,9 @@ import numpy as np
 import fft
 
 
+LOG_FACTOR = 0.2
+
+
 def run_bmp_compression(file):
     # data
     # file = util.select_bmp_file()
@@ -15,35 +18,43 @@ def run_bmp_compression(file):
     image_domain = np.array(image)
 
     # 2D fft
-    freq_domain, padding = compress(image_domain)
-    normalized_freq = normalize_frequencies(freq_domain)
+    freq_domain, padding = bmp_compression.compress(image_domain)
+    normalized_freq = bmp_compression.normalize_data(freq_domain, LOG_FACTOR)
 
     # Horizontal 2D fft
     horizontal_freq_domain = fft.horizontal_fft2d(image_domain)
-    normalized_horizontal_freq = normalize_frequencies(horizontal_freq_domain)
+    normalized_horizontal_freq = bmp_compression.normalize_data(horizontal_freq_domain, LOG_FACTOR)
 
     # Vertical 2D fft
     vertical_freq_domain = fft.vertical_fft2d(image_domain)
-    normalized_vertical_freq = normalize_frequencies(vertical_freq_domain)
+    normalized_vertical_freq = bmp_compression.normalize_data(vertical_freq_domain, LOG_FACTOR)
 
     # Plot 2D fft
-    output_dir = Path.cwd() / f'analysis_files' / f'{file.stem}-forward.html'
-    plot_image(image_domain, normalized_freq, normalized_horizontal_freq, normalized_vertical_freq, output_dir)
+    output_file = Path.cwd() / f'analysis_files' / f'{file.stem}-forward.html'
+    output_file.parent.mkdir(parents=True, exist_ok=True)
+    bmp_compression.plot_image(image_domain, normalized_freq, normalized_horizontal_freq, normalized_vertical_freq, output_file)
 
     # inverse 2D fft
-    padding = int(padding)
+    padding = int(padding.item())
     padded_freq_domain = np.pad(freq_domain, padding)
-    inverse_image_domain = np.real(decompress(freq_domain))
+    inverse_image_domain = np.real(bmp_compression.decompress(freq_domain))
 
     # Horizontal inverse 2D fft
-    horizontal_image_domain = normalize_frequencies(fft.horizontal_inverse_fft2d(freq_domain))
+    horizontal_image_domain = bmp_compression.normalize_data(fft.horizontal_inverse_fft2d(freq_domain), LOG_FACTOR)
 
     # Vertical inverse 2D fft
-    vertical_image_domain = normalize_frequencies(fft.vertical_inverse_fft2d(freq_domain))
+    vertical_image_domain = bmp_compression.normalize_data(fft.vertical_inverse_fft2d(freq_domain), LOG_FACTOR)
 
     # Plot inverse 2D fft
-    output_dir = Path.cwd() / f'analysis_files' / f'{file.stem}-inverse.html'
-    plot_image(inverse_image_domain, normalized_freq, horizontal_image_domain, vertical_image_domain, output_dir)
+    output_file = Path.cwd() / f'analysis_files' / f'{file.stem}-inverse.html'
+    output_file.parent.mkdir(parents=True, exist_ok=True)
+    bmp_compression.plot_image(
+        inverse_image_domain,
+        normalized_freq,
+        horizontal_image_domain,
+        vertical_image_domain,
+        output_file
+    )
 
 
 def get_args() -> argparse.Namespace:
@@ -84,12 +95,16 @@ def run(args):
 
         # bmp file options
         case '.bmp', None:
-            pass
-        case '.bmp', True:
-            pass
+            output_file = Path(output_dir / f'{file.stem}.bcmp')
+            image = Image.open(file)
+            image_arr = np.array(image)
+            bmp_compression.compress_and_write(image_arr, output_file)
         case '.bcmp', None:
             output_file = output_dir / f'{file.stem}_modified.bmp'
-
+            compressed_data = np.load(file)
+            bmp_compression.decompress_and_write(compressed_data, output_file)
+        case '.bmp', True:
+            pass
         # Not supported options
         case '.wcmp', True:
             raise ValueError('Analysis not supported for compressed files')

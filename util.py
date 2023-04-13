@@ -3,6 +3,7 @@ from scipy.io import wavfile as wf
 import math
 import numpy as np
 import os
+from PIL import Image
 
 
 def select_wav_file():
@@ -19,12 +20,20 @@ def select_bmp_file():
     return files[int(input('>> ')) - 1]
 
 
-def read_wav_file(file_path):
-    return wf.read(file_path)
+def read_wav_file(file):
+    return wf.read(file)
 
 
-def write_to_wav_file(file_path, sampling_rate, time_domain):
+def write_wav_file(file_path, sampling_rate, time_domain):
     wf.write(file_path, sampling_rate, time_domain)
+
+
+def read_bmp_file(file):
+    Image.open(file)
+
+
+def write_bmp_file(file, data):
+    Image.fromarray(data).save(file)
 
 
 def np_save(file: Path, data):
@@ -33,6 +42,14 @@ def np_save(file: Path, data):
     if os.path.exists(file):
         os.remove(file)
     os.rename(f'{file}.npy', file)
+
+
+def np_savez(file: Path, *args):
+    file.parent.mkdir(parents=True, exist_ok=True)
+    np.savez(file, *args)
+    if os.path.exists(file):
+        os.remove(file)
+    os.rename(f'{file}.npz', file)
 
 
 def power2_round_down(sample):
