@@ -68,12 +68,10 @@ def decompress(compressed_data):
     original_time_domain_size = int(np.real(compressed_data[0]))
     sampling_rate = int(np.real(compressed_data[1]))
     dtype = dtypes[int(np.real(compressed_data[2]))]
-    freq_domain = compressed_data[3:-1]
-    padding = int(np.real(compressed_data[-1]))
 
     # Run inverted fft
     print('Decompressing...')
-    padded_freq_domain = np.concatenate((freq_domain, [0] * padding))
+    padded_freq_domain = decompress_truncated_frequency_domain(compressed_data)
     time_domain = np.real(fft.inverse_fft(padded_freq_domain)).astype(dtype)
 
     # Resize and return

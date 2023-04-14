@@ -1,3 +1,18 @@
+"""
+Usage: compression [OPTIONS] --file <FILE>
+
+Options:
+  -f, --file <FILE>                Input file (.wav or .bmp)
+  -c, --compression <COMPRESSION>  Compression level (higher: smaller file size, lower: better quality) [default: 10]
+  -a, --analyze                    Analyze frequencies
+  -l, --log-factor <LOG_FACTOR>    Log factor (when analyzing) [default: 0.2]
+  -o, --output-dir <OUTPUT_DIR>    Output directory [default: ./data/]
+  -h, --help                       Print help
+  -V, --version                    Print version
+"""
+import os
+
+from docopt import docopt
 import argparse
 import util
 import wav_compression
@@ -79,7 +94,7 @@ def run(args):
     if args.clear:
         for f in list(output_dir.iterdir()):
             os.remove(f)
-            print('Cleared output directory')
+        print('Cleared output directory')
     match file.suffix, args.analyze:
         # wav file options
         case '.wav', None:
@@ -96,7 +111,7 @@ def run(args):
         # bmp file options
         case '.bmp', None:
             output_file = Path(output_dir / f'{file.stem}.bcmp')
-            image = Image.open(file)
+            image = util.read_bmp_file(file)
             image_arr = np.array(image)
             bmp_compression.compress_and_write(image_arr, output_file)
         case '.bcmp', None:
@@ -104,7 +119,7 @@ def run(args):
             compressed_data = np.load(file)
             bmp_compression.decompress_and_write(compressed_data, output_file)
         case '.bmp', True:
-            pass
+            bmp_compression.analyze_bmp(file, output_dir)
         # Not supported options
         case '.wcmp', True:
             raise ValueError('Analysis not supported for compressed files')

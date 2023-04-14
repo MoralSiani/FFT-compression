@@ -29,7 +29,7 @@ def write_wav_file(file_path, sampling_rate, time_domain):
 
 
 def read_bmp_file(file):
-    Image.open(file)
+    return Image.open(file)
 
 
 def write_bmp_file(file, data):
