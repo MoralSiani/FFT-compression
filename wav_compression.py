@@ -150,8 +150,8 @@ def save_plot_time_and_freq(
         subplot_titles=(
             "Time domain",
             "Frequency domain",
-            "Decompressed_time domain",
-            "Decompressed_frequency domain"
+            "Decompressed time domain",
+            "Decompressed frequency domain"
         )
     )
     fig.add_trace(
@@ -167,10 +167,10 @@ def save_plot_time_and_freq(
         go.Scatter(x=cmp_freq_domain['frequency'], y=cmp_freq_domain['magnitude'], mode='lines'), row=2, col=2
     )
     # x-axis names
-    fig.update_xaxes(title_text="Time", row=1, col=1)
-    fig.update_xaxes(title_text="Frequency", row=1, col=2)
-    fig.update_xaxes(title_text="Time", row=2, col=1)
-    fig.update_xaxes(title_text="Frequency", row=2, col=2)
+    fig.update_xaxes(title_text="Time (s)", row=1, col=1)
+    fig.update_xaxes(title_text="Frequency (Hz)", row=1, col=2)
+    fig.update_xaxes(title_text="Time (s)", row=2, col=1)
+    fig.update_xaxes(title_text="Frequency (Hz)", row=2, col=2)
 
     # y-axis names
     fig.update_yaxes(title_text="Magnitude", row=1, col=1)
@@ -179,6 +179,7 @@ def save_plot_time_and_freq(
     fig.update_yaxes(title_text="Magnitude", row=2, col=2)
 
     # Update geo subplot properties
+    fig.update_layout(showlegend=False)
     fig.update_geos(
         projection_type="orthographic",
         landcolor="white",

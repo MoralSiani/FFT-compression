@@ -145,7 +145,7 @@ def analyze_bmp(bmp_file, output_dir):
 
 def plot_image(image, freq_domain, decompressed_image, decompressed_freq_domain, output_file):
     fig = make_subplots(
-        rows=2, cols=2,
+        rows=1, cols=4,
         subplot_titles=(
             "Original image",
             "frequency domain",
@@ -155,12 +155,12 @@ def plot_image(image, freq_domain, decompressed_image, decompressed_freq_domain,
     )
     fig.add_trace(go.Image(z=image), row=1, col=1)
     fig.add_trace(go.Image(z=freq_domain), row=1, col=2)
-    fig.add_trace(go.Image(z=decompressed_image), row=2, col=1)
-    fig.add_trace(go.Image(z=decompressed_freq_domain), row=2, col=2)
+    fig.add_trace(go.Image(z=decompressed_image), row=1, col=3)
+    fig.add_trace(go.Image(z=decompressed_freq_domain), row=1, col=4)
     fig.update_layout(
         autosize=True,
         width=1900,
-        height=1300,
+        height=600,
 )
     # # x-axis names
     # fig.update_xaxes(title_text="Time", row=1, col=1)
@@ -179,9 +179,10 @@ def plot_image(image, freq_domain, decompressed_image, decompressed_freq_domain,
     #     lakecolor="LightBlue"
     # )
 
-    fig.update_layout(
-        template="plotly_dark",
+    # fig.update_layout(
+    #     template="plotly_dark",
         # title_text="Before compression",
-    )
+    # )
+    fig.update_layout(showlegend=False)
     fig.write_html(output_file)
     os.startfile(output_file)
