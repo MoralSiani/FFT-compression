@@ -1,15 +1,4 @@
-"""
-Usage: compression [OPTIONS] --file <FILE>
 
-Options:
-  -f, --file <FILE>                Input file (.wav or .bmp)
-  -c, --compression <COMPRESSION>  Compression level (higher: smaller file size, lower: better quality) [default: 10]
-  -a, --analyze                    Analyze frequencies
-  -l, --log-factor <LOG_FACTOR>    Log factor (when analyzing) [default: 0.2]
-  -o, --output-dir <OUTPUT_DIR>    Output directory [default: ./data/]
-  -h, --help                       Print help
-  -V, --version                    Print version
-"""
 import os
 import argparse
 import util

@@ -7,18 +7,19 @@ import util
 from pathlib import Path
 
 
-CUTOFF_PERCENT = 0.15
+CUTOFF_PERCENT = 0.3
 LOG_FACTOR = 0.2
 
 
 # ### Compression ### #
 
 def compress_and_write(image, output_file, freq_domain=None):
-    compressed_freq_domain, padding = compress(image, freq_domain)
-    util.np_savez(output_file, compressed_freq_domain, padding)
+    compressed_freq_domain, padding, image_original_size = compress(image, freq_domain)
+    util.np_savez(output_file, compressed_freq_domain, padding, image_original_size)
     return {
         'arr_0': compressed_freq_domain,
         'arr_1': padding,
+        'arr_2': image_original_size,
     }
 
 
@@ -26,20 +27,23 @@ def compress(image, freq_domain):
     """returns a compressed data"""
     # run fft
     print('Compressing...')
+    image_original_size = image.shape[0:2]
     if freq_domain is None:
-        freq_domain = fft.fft2d_with_channels(image)
+        freq_domain = fft.fft2d_with_channels(util.power2_round_up_2d(image))
     # compress and return
     compressed_freq_domain, padding = compress_freq_domain_by_truncating(freq_domain)
     converted_compressed_freq_domain = compressed_freq_domain.astype('complex64')
     print('Compression complete')
-    return converted_compressed_freq_domain, np.array(padding)
+    return converted_compressed_freq_domain, np.array(padding), image_original_size
 
 
 def compress_freq_domain_by_truncating(freq_domain):
-    cutoff = int(CUTOFF_PERCENT * len(freq_domain[0]) / 2)
-    compressed_freq_domain = combine_corners(*get_image_corners(freq_domain, cutoff))
-    padding = int(len(freq_domain[0]) / 2 - cutoff)
-    return compressed_freq_domain, padding
+    vertical_cutoff = int(CUTOFF_PERCENT * freq_domain.shape[0] / 2)
+    horizontal_cutoff = int(CUTOFF_PERCENT * freq_domain.shape[1] / 2)
+    compressed_freq_domain = combine_corners(*get_image_corners(freq_domain, vertical_cutoff, horizontal_cutoff))
+    vertical_padding = int(freq_domain.shape[0] / 2 - vertical_cutoff)
+    horizontal_padding = int(freq_domain.shape[1] / 2 - horizontal_cutoff)
+    return compressed_freq_domain, list((vertical_padding, horizontal_padding))
 
 
 # ### Decompression ### #
@@ -54,25 +58,28 @@ def decompress(compressed_data):
     """Returns the decompressed data as a bmp file"""
     # Extract data
     compressed_freq_domain = compressed_data['arr_0']
-    padding = compressed_data['arr_1'].item()
-
+    padding = compressed_data['arr_1']
+    image_original_size = compressed_data['arr_2']
     # run inverted fft
     freq_domain = pad_freq_domain(compressed_freq_domain, padding)
     print('Decompressing...')
     image = np.real(fft.inverse_fft2d_with_channels(freq_domain))
+    resized_image = util.crop_center(image, *image_original_size)
     print('Decompression complete')
-    return normalize_data(image).astype('uint8')
+    return normalize_data(resized_image).astype('uint8')
 
 
 def pad_freq_domain(compressed_freq_domain, padding):
-    corner_len = int(len(compressed_freq_domain) / 2)
-    image_len = len(compressed_freq_domain) + (2 * padding)
+    corner_vertical_len = int(compressed_freq_domain.shape[0] / 2)
+    corner_horizontal_len = int(compressed_freq_domain.shape[1] / 2)
+    image_vertical_len = compressed_freq_domain.shape[0] + (2 * padding[0])
+    image_horizontal_len = compressed_freq_domain.shape[1] + (2 * padding[1])
     up_left, up_right, down_left, down_right = get_image_corners(compressed_freq_domain)
-    padded_freq_domain = np.zeros(image_len * image_len * 3, dtype=np.complex128).reshape(image_len, image_len, 3)
-    padded_freq_domain[0:corner_len, 0:corner_len, :] += up_left
-    padded_freq_domain[0:corner_len, -corner_len:image_len, :] += up_right
-    padded_freq_domain[-corner_len:image_len, 0:corner_len, :] += down_left
-    padded_freq_domain[-corner_len:image_len, -corner_len:image_len, :] += down_right
+    padded_freq_domain = np.zeros(image_vertical_len * image_horizontal_len * 3, dtype=np.complex64).reshape(image_vertical_len, image_horizontal_len, 3)
+    padded_freq_domain[0:corner_vertical_len, 0:corner_horizontal_len, :] += up_left
+    padded_freq_domain[0:corner_vertical_len, -corner_horizontal_len:image_horizontal_len, :] += up_right
+    padded_freq_domain[-corner_vertical_len:image_vertical_len, 0:corner_horizontal_len, :] += down_left
+    padded_freq_domain[-corner_vertical_len:image_vertical_len, -corner_horizontal_len:image_horizontal_len, :] += down_right
     return padded_freq_domain
 
 
@@ -85,14 +92,15 @@ def normalize_data(data, log_factor=1):
     return ((data_norms / max_value) ** log_factor) * 255
 
 
-def get_image_corners(arr, size=None):
-    if size is None:
-        size = int(len(arr) / 2)
-    assert size <= len(arr) / 2
-    up_left = arr[0:size, 0:size, :]
-    up_right = arr[0:size, -size:len(arr), :]
-    down_left = arr[-size:len(arr), 0:size, :]
-    down_right = arr[-size:len(arr), -size:len(arr), :]
+def get_image_corners(image, vertical_size=None, horizontal_size=None):
+    if vertical_size is None:
+        vertical_size = int(image.shape[0] / 2)
+    if horizontal_size is None:
+        horizontal_size = int(image.shape[1] / 2)
+    up_left = image[0:vertical_size, 0:horizontal_size, :]
+    up_right = image[0:vertical_size, -horizontal_size:image.shape[1], :]
+    down_left = image[-vertical_size:image.shape[0], 0:horizontal_size, :]
+    down_right = image[-vertical_size:image.shape[0], -horizontal_size:image.shape[1], :]
     return up_left, up_right, down_left, down_right
 
 
@@ -116,7 +124,7 @@ def analyze_bmp(bmp_file, output_dir):
     image_domain = np.array(image)
 
     # # 2D fft to calculate freq. domain
-    freq_domain = fft.fft2d_with_channels(image_domain)
+    freq_domain = fft.fft2d_with_channels(util.power2_round_up_2d(image_domain))
     normalized_freq_domain = combine_and_shift_corners(*get_image_corners(normalize_data(freq_domain, LOG_FACTOR)))
 
     # Compress and write
@@ -124,7 +132,7 @@ def analyze_bmp(bmp_file, output_dir):
     compressed_data = compress_and_write(image_domain, output_file, freq_domain)
 
     # Decompress and write
-    padding = compressed_data['arr_1'].item()
+    padding = compressed_data['arr_1']
     decompressed_freq_domain = pad_freq_domain(compressed_data['arr_0'], padding)
     output_file = output_dir / f'{bmp_file.stem}_modified.bmp'
     decompressed_image = decompress_and_write(compressed_data, output_file)

@@ -78,6 +78,7 @@ def _fft_recursive(sample, inverse_coefficient) -> np.ndarray:
     # assert data is a power of 2
     sample_log = math.log2(sample_size)
     if sample_log != int(sample_log):
+        print(f'{sample_log = }')
         raise ValueError
 
     # recursion step

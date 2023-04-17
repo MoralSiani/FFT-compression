@@ -54,15 +54,35 @@ def np_savez(file: Path, *args):
 
 def power2_round_down(sample):
     """Returns a rounded down truncated sample to the closest power of 2"""
-    cutoff = 2 ** int(math.log2(len(sample)))
-    return sample[:cutoff]
+    rounded_size = 2 ** int(math.log2(len(sample)))
+    return sample[:rounded_size]
 
 
 def power2_round_up(sample):
     """Returns a rounded up zero-padded sample as ndarray to the closest power of 2"""
-    cutoff = 2 ** math.ceil(math.log2(len(sample)))
-    padding = [0] * (cutoff - len(sample))
+    rounded_size = 2 ** math.ceil(math.log2(len(sample)))
+    padding = [0] * (rounded_size - len(sample))
     return np.concatenate((sample, padding))
 
 
+def power2_round_up_2d(sample):
+    vertical_rounded_size = 2 ** math.ceil(math.log2(sample.shape[0]))
+    horizontal_rounded_size = 2 ** math.ceil(math.log2(sample.shape[1]))
+    vertical_padding = (vertical_rounded_size - sample.shape[0]) // 2
+    horizontal_padding = (horizontal_rounded_size - sample.shape[1]) // 2
+    vertical = (vertical_padding, vertical_padding)
+    horizontal = (horizontal_padding, horizontal_padding)
+    if sample.shape[0] % 2 == 1:
+        vertical = (vertical_padding + 1, vertical_padding)
+    if sample.shape[1] % 2 == 1:
+        horizontal = (horizontal_padding + 1, horizontal_padding)
+    padded_sample = np.pad(sample, pad_width=(vertical, horizontal, (0, 0)), mode='constant',)
+    return padded_sample
+
+
+def crop_center(image, vertical_crop, horizontal_crop):
+    image_vertical, image_horizontal = image.shape[0:2]
+    vertical_start = (image_vertical // 2) - (vertical_crop // 2)
+    horizontal_start = (image_horizontal // 2) - (horizontal_crop // 2)
+    return image[vertical_start:vertical_start + vertical_crop, horizontal_start:horizontal_start + horizontal_crop]
 
