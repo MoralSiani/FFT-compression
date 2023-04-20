@@ -4,6 +4,8 @@ Proof of concept for audio and image compression using a custom implementation o
 This program compresses and decompresses `*.wav` or `*.bmp` files by truncating higher frequencies.
 Additionally, the program can generate visual representations of the time/color and frrequency domain. 
 
+![Analysis output](/compression.png)
+
 ```
 usage: main.py FILE [options]
                                                                                                     
