@@ -7,7 +7,7 @@ import util
 from pathlib import Path
 
 
-CUTOFF_PERCENT = 0.3
+CUTOFF_PERCENT = 0.1
 LOG_FACTOR = 0.2
 
 
@@ -145,7 +145,7 @@ def analyze_bmp(bmp_file, output_dir):
         normalized_freq_domain,
         decompressed_image,
         normalized_decompressed_freq_domain,
-        output_file
+        output_file,
     )
 
 

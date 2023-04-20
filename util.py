@@ -21,7 +21,10 @@ def select_bmp_file():
 
 
 def read_wav_file(file):
-    return wf.read(file)
+    sampling_rate, time_domain = wf.read(file)
+    if time_domain.ndim != 1:
+        raise ValueError('Stereo not supported, only mono ')
+    return sampling_rate, time_domain
 
 
 def write_wav_file(file_path, sampling_rate, time_domain):
