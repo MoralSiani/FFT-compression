@@ -7,7 +7,7 @@ import util
 from pathlib import Path
 
 
-CUTOFF_PERCENT = 0.1
+CUTOFF_PERCENT = 0.3
 LOG_FACTOR = 0.2
 
 
@@ -192,5 +192,17 @@ def plot_image(image, freq_domain, decompressed_image, decompressed_freq_domain,
         # title_text="Before compression",
     # )
     fig.update_layout(showlegend=False)
+    fig.update_geos(
+        projection_type="orthographic",
+        landcolor="white",
+        oceancolor="MidnightBlue",
+        showocean=True,
+        lakecolor="LightBlue"
+    )
+
+    fig.update_layout(
+        template="plotly_dark",
+        # title_text="Before compression",
+    )
     fig.write_html(output_file)
     os.startfile(output_file)
